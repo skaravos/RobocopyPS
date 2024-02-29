@@ -591,6 +591,9 @@ Function Invoke-RoboCopy {
         $RobocopyArguments += '/r:' + $Retry
         $RobocopyArguments += '/w:' + $Wait
 
+        # default action is Copy
+        $action = 'Copy'
+
         #region Copy options
         if ($IncludeSubDirectories) {
             $RobocopyArguments += '/s'; $action = 'Copy'
