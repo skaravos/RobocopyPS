@@ -936,6 +936,7 @@ Function Invoke-RoboCopy {
             else {
                 Robocopy.exe @RoboArgs
             }
+            #endregion
         }
     }
 }
