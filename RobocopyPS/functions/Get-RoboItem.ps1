@@ -57,6 +57,7 @@ Function Get-RoboItem {
         [ValidateSet('Auto', 'PB', 'TB', 'GB', 'MB', 'KB', 'Bytes')]
         [String]$Unit = 'Auto',
 
+        # Number of digits after decimal point in rounded numbers.
         [System.Int64]$Precision = 4
     )
 

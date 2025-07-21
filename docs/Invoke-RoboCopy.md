@@ -1561,7 +1561,7 @@ Accept wildcard characters: False
 ```
 
 ### -OutputType
-Choose if output from Robocopy.exe should be parsed or not.
+Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.
 
 ```yaml
 Type: Object

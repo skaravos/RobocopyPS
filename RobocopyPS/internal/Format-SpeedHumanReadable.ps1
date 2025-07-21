@@ -5,6 +5,7 @@ Function Format-SpeedHumanReadable {
         [ValidateSet('Auto', 'PB', 'TB', 'GB', 'MB', 'KB', 'Bytes')]
         [String]$Unit = 'Auto',
 
+        # Number of digits after decimal point in rounded numbers.
         [ValidateRange(1,28)]
         [System.Int64]$Precision
     )

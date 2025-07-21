@@ -285,7 +285,6 @@ Function Invoke-RoboCopy {
 
         # Requests network compression during file transfer, if applicable.
         [Switch]$Compress,
-        #endregion
 
         # Enable retaining sparse state during copy.
         [Switch]$Sparse,
@@ -523,9 +522,11 @@ Function Invoke-RoboCopy {
         [ValidateSet('Auto', 'PB', 'TB', 'GB', 'MB', 'KB', 'Bytes')]
         [String]$Unit = 'Auto',
 
+        # Number of digits after decimal point in rounded numbers.
         [ValidateRange(1, 28)]
         [System.Int64]$Precision = 4,
 
+        # Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.
         [ValidateSet('Native', 'Parse')]
         $OutputType = 'Parse'
         #endregion

@@ -1100,7 +1100,7 @@
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputType</maml:name>
           <maml:description>
-            <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+            <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -2205,7 +2205,7 @@
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>OutputType</maml:name>
         <maml:description>
-          <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+          <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -3218,7 +3218,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="40" aliases="none">
           <maml:name>OutputType</maml:name>
           <maml:description>
-            <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+            <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -5025,7 +5025,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="40" aliases="none">
         <maml:name>OutputType</maml:name>
         <maml:description>
-          <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+          <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -6208,7 +6208,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputType</maml:name>
           <maml:description>
-            <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+            <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -7325,7 +7325,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>OutputType</maml:name>
         <maml:description>
-          <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+          <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -8750,7 +8750,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputType</maml:name>
           <maml:description>
-            <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+            <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -9819,7 +9819,7 @@ LastExitCodeMessage : Some files were copied. Additional files were present. No 
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>OutputType</maml:name>
         <maml:description>
-          <maml:para>Choose if output from Robocopy.exe should be parsed or not.</maml:para>
+          <maml:para>Choose if output from Robocopy.exe should be parsed into PowerShell objects or left as text.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
