@@ -580,12 +580,21 @@ Function Invoke-RoboCopy {
         $ModifiedSource = $Source -replace '\\$'
         $ModifiedDestination = $Destination -replace '\\$'
 
+        function escape_with_doublequotes($Str) {
+            if ($Str -match '^".*"$') {
+                $Str
+            }
+            else {
+                '"' + $Str + '"'
+            }
+        }
         # We place "" so we can use spaces in path names
-        $ModifiedSource = '"' + $ModifiedSource + '"'
-        $ModifiedDestination = '"' + $ModifiedDestination + '"'
+        $ModifiedSource = escape_with_doublequotes $ModifiedSource
+        $ModifiedDestination = escape_with_doublequotes $ModifiedDestination
+        $ModifiedFiles = foreach ($item in $Files) { escape_with_doublequotes $item }
 
         # RobocopyArguments are not the final variable that countain all robocopy parameters
-        $RobocopyArguments = $ModifiedSource, $ModifiedDestination + $Files
+        $RobocopyArguments = $ModifiedSource, $ModifiedDestination + $ModifiedFiles
 
         # We add wait and retry with the default from their parameters, else Robocopy will try a million time before time out
         $RobocopyArguments += '/r:' + $Retry
