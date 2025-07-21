@@ -549,7 +549,7 @@ Function Invoke-RoboCopy {
         }
 
         # If Force is true we want to create the destination folder even if it doesnt exist
-        elseif ($Force -eq $True -and $null -eq $WhatIf) {
+        elseif ($Force -eq $True -and (-not $WhatIfPreference)) {
             try {
                 If (Test-Path $Destination) {
                     Write-Verbose "$Destination already exist"
