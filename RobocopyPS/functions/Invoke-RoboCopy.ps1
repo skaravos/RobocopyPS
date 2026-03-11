@@ -912,47 +912,49 @@ Function Invoke-RoboCopy {
 
             #region All Logic for the robocopy process is handled here. Including what to do with the output etc.
             if ($OutputType -eq 'Parse') {
-                Robocopy.exe @RoboArgs | Where-Object { $PSItem -ne '' } | Invoke-RobocopyParser -Unit $unit -Precision $Precision -RoboArgs $RoboArgs | & {
-                    process {
-                        If ($psitem.stream -eq 'Verbose') {
-                            Write-Verbose -Message ('"{0} File" on "Item {1}" to target "{2}" Status on Item "{3}". Length on Item "{4}". TimeStamp on Item "{5}"' -f $action, $psitem.FullName , $Destination, $psitem.status, $psitem.length, $psitem.TimeStamp)
-                        }
-
-                        ElseIf ($psitem.stream -eq 'Error') {
-
-                            If ($psitem.exception) {
-                                $Exception = [Exception]::new($psitem.exception)
+                Robocopy.exe @RoboArgs |
+                    Where-Object { $PSItem -ne '' } |
+                    Invoke-RobocopyParser -Unit $unit -Precision $Precision -RoboArgs $RoboArgs | & {
+                        process {
+                            If ($psitem.stream -eq 'Verbose') {
+                                Write-Verbose -Message ('"{0} File" on "Item {1}" to target "{2}" Status on Item "{3}". Length on Item "{4}". TimeStamp on Item "{5}"' -f $action, $psitem.FullName , $Destination, $psitem.status, $psitem.length, $psitem.TimeStamp)
                             }
+
+                            ElseIf ($psitem.stream -eq 'Error') {
+
+                                If ($psitem.exception) {
+                                    $Exception = [Exception]::new($psitem.exception)
+                                }
+                                Else {
+                                    $Exception = [Exception]::new($psitem.Value)
+                                }
+
+                                $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
+                                    $Exception,
+                                    $Psitem.ErrorID,
+                                    [System.Management.Automation.ErrorCategory]::NotSpecified,
+                                    $TargetObject # usually the object that triggered the error, if possible
+                                )
+                                $PSCmdlet.WriteError($ErrorRecord)
+                            }
+
+                            ElseIf ($psitem.stream -eq 'Warning') {
+                                Write-Warning $psitem.value
+                            }
+
+                            ElseIf ($psitem.stream -eq 'Information') {
+                                Write-Information $psitem.Value
+                            }
+
                             Else {
-                                $Exception = [Exception]::new($psitem.Value)
+                                # This will output the pscustomobject with information as source, destination, success and more
+                                if ($PSItem.Success -and $ClearLastExitCodeOnSuccess) {
+                                    $global:LastExitCode = 0
+                                }
+                                $Psitem
                             }
-
-                            $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-                                $Exception,
-                                $Psitem.ErrorID,
-                                [System.Management.Automation.ErrorCategory]::NotSpecified,
-                                $TargetObject # usually the object that triggered the error, if possible
-                            )
-                            $PSCmdlet.WriteError($ErrorRecord)
-                        }
-
-                        ElseIf ($psitem.stream -eq 'Warning') {
-                            Write-Warning $psitem.value
-                        }
-
-                        ElseIf ($psitem.stream -eq 'Information') {
-                            Write-Information $psitem.Value
-                        }
-
-                        Else {
-                            # This will output the pscustomobject with information as source, destination, success and more
-                            if ($PSItem.Success -and $ClearLastExitCodeOnSuccess) {
-                                $global:LastExitCode = 0
-                            }
-                            $Psitem
                         }
                     }
-                }
             }
             else {
                 Robocopy.exe @RoboArgs
