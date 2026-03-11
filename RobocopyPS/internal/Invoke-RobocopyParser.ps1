@@ -87,25 +87,25 @@ Function Invoke-RobocopyParser {
                 }
             }
 
-            ElseIf ($InputObject -match $FileInfoRegex) {
-                $TimeStamp = [DateTime]::Parse($Matches.TimeStamp)
-                $Extension = [System.IO.Path]::GetExtension($Matches.Path)
-                $FileName  = [System.IO.Path]::GetFileName($Matches.Path)
-
-                [PSCustomObject]@{
-                    Extension = $Extension
-                    Name      = $FileName
-                    FullName  = $Matches.Path
-                    Length    = $Matches.Size
-                    TimeStamp = $TimeStamp
-                    Status    = $Matches.Status
-                    Stream    = "Verbose"
-                }
-            }
-
             else {
-                # Some we will just assign to variables and dont use or dont do anything with
+                # Some we will just assign to variables and don't use or don't do anything with
                 Switch -Regex ($InputObject) {
+                    $FileInfoRegex {
+                        $TimeStamp = [DateTime]::Parse($Matches.TimeStamp)
+                        $Extension = [System.IO.Path]::GetExtension($Matches.Path)
+                        $FileName  = [System.IO.Path]::GetFileName($Matches.Path)
+
+                        [PSCustomObject]@{
+                            Extension = $Extension
+                            Name      = $FileName
+                            FullName  = $Matches.Path
+                            Length    = $Matches.Size
+                            TimeStamp = $TimeStamp
+                            Status    = $Matches.Status
+                            Stream    = "Verbose"
+                        }
+                        break
+                    }
                     $WarningFilter {
                         [PSCustomObject]@{
                             Value  = $InputObject
