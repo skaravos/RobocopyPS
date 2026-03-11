@@ -922,21 +922,7 @@ Function Invoke-RoboCopy {
                             }
 
                             ElseIf ($PSItem.Stream -eq 'Error') {
-
-                                If ($PSItem.Exception) {
-                                    $Exception = [Exception]::new($PSItem.Exception)
-                                }
-                                Else {
-                                    $Exception = [Exception]::new($PSItem.Value)
-                                }
-
-                                $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-                                    $Exception,
-                                    $PSItem.ErrorID,
-                                    [System.Management.Automation.ErrorCategory]::NotSpecified,
-                                    $null # usually the object that triggered the error, if possible
-                                )
-                                $PSCmdlet.WriteError($ErrorRecord)
+                                $PSCmdlet.WriteError($PSItem.ErrorRecord)
                             }
 
                             ElseIf ($PSItem.Stream -eq 'Warning') {

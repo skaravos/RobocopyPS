@@ -36,11 +36,16 @@ Function Invoke-RobocopyParser {
         # We have a corresponding $EndTime to measure how long the code ran for
         $StartTime = $(Get-Date)
 
-        # Regex for catching all text that will be sent to Error Stream
+        # Used in the output Property Success. If $ErrorOccurred is $true we set Success to $false
+        $ErrorOccurred = $false
+
+        # Errors matching this pattern require parsing two consecutive input lines
+        $HexErrorRegex = "ERROR \d+ \(0x[0-9A-Fa-f]{1,8}\)"
+
+        # Regex for catching all single-line error text that will be sent to Error Stream
         $ErrorFilter = @(
             "The filename, directory name, or volume label syntax is incorrect.",
             "\*\*\*\*\*  You need these to perform Backup copies \(\/B or \/ZB\).",
-            "ERROR \d{1,3} \(0x\d\w{1,11}\)",
             "ERROR : ",
             "ERROR: RETRY LIMIT EXCEEDED.",
             "ERROR 123"
@@ -68,122 +73,150 @@ Function Invoke-RobocopyParser {
     Process {
         try {
 
-            If ($InputObject -match $ErrorFilter -or $ForceNextLineIntoError -eq $true) {
-                # If any error happened we set $ErrorOccurred to $true.
-                # This is used in the output Property Success. If $ErrorOccurred is $true we set Success to $false
-                $ErrorOccurred = $true
+            If ($PreviousLineWasHexError) {
 
-                If ($null -eq $Message) {
-                    $Message = $InputObject
-                    $ForceNextLineIntoError = $true
+                # HexCode Errors and their associated explanation are on separate lines in the Robocopy.exe output:
+                # e.g.
+                # 2025/12/06 20:45:28 ERROR 1921 (0x00000781) Copying Directory C:\Invalid\Directory  # $PreviousLine
+                # The name of the file cannot be resolved by the system.                              # $InputObject
+
+                # We can split the previous line to extract its individual components to form a better ErrorRecord
+
+                # a[0] = "2025/12/06 20:45:28"                       # $ErrorTime
+                # a[1] = "ERROR 1921 (0x00000781)"                   # $ErrorId
+                # a[2] = "Copying Directory C:\Invalid\Directory"    # $ErrorTarget
+
+                $ErrorExplanation = $InputObject
+                $ErrorTime, $ErrorId, $ErrorTarget = ($PreviousLine -split "($HexErrorRegex)").trim()
+
+                [PSCustomObject]@{
+                    Value       = "{0}. {1}" -f $PreviousLine, $InputObject
+                    Stream      = "Error"
+                    ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
+                        [Exception]::new(("{0} {1}" -f $ErrorTarget, $ErrorExplanation)),
+                        $ErrorId,
+                        [System.Management.Automation.ErrorCategory]::NotSpecified,
+                        $ErrorTarget
+                    )
                 }
-                else {
-                    $LastMessage = ("{0}. {1}" -f $Message, $InputObject.trim())
-                    $ForceNextLineIntoError = $false
-                    $Message = $null
-                    $SplitMessage = $LastMessage -split '(ERROR \d \(0x\d{1,11}\) )'
-                    [PSCustomObject]@{
-                        Value     = $LastMessage
-                        Stream    = "Error"
-                        Exception = $SplitMessage[2]
-                        ErrorID   = $SplitMessage[1]
-                    }
-                }
+
+                $PreviousLine = $null
+                $PreviousLineWasHexError = $false
+
+                return # go to next line
             }
 
-            else {
-                # Some we will just assign to variables and don't use or don't do anything with
-                Switch -Regex ($InputObject) {
-                    $FileInfoRegex {
-                        $TimeStamp = [DateTime]::Parse($Matches.TimeStamp)
-                        $Extension = [System.IO.Path]::GetExtension($Matches.Path)
-                        $FileName  = [System.IO.Path]::GetFileName($Matches.Path)
+            # Some we will just assign to variables and don't use or don't do anything with
+            Switch -Regex ($InputObject) {
+                $HexErrorRegex {
+                    $ErrorOccurred = $true
+                    $PreviousLine = $InputObject
+                    $PreviousLineWasHexError = $true
+                    break
+                }
+                $ErrorFilter {
+                    $ErrorOccurred = $true
+                    [PSCustomObject]@{
+                        Value       = $InputObject
+                        Stream      = "Error"
+                        ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
+                            [Exception]::new($InputObject),
+                            $InputObject,
+                            [System.Management.Automation.ErrorCategory]::NotSpecified,
+                            $InputObject
+                        )
+                    }
+                    break
+                }
+                $FileInfoRegex {
+                    $TimeStamp = [DateTime]::Parse($Matches.TimeStamp)
+                    $Extension = [System.IO.Path]::GetExtension($Matches.Path)
+                    $FileName  = [System.IO.Path]::GetFileName($Matches.Path)
 
-                        [PSCustomObject]@{
-                            Extension = $Extension
-                            Name      = $FileName
-                            FullName  = $Matches.Path
-                            Length    = $Matches.Size
-                            TimeStamp = $TimeStamp
-                            Status    = $Matches.Status
-                            Stream    = "Verbose"
-                        }
-                        break
+                    [PSCustomObject]@{
+                        Extension = $Extension
+                        Name      = $FileName
+                        FullName  = $Matches.Path
+                        Length    = $Matches.Size
+                        TimeStamp = $TimeStamp
+                        Status    = $Matches.Status
+                        Stream    = "Verbose"
                     }
-                    $WarningFilter {
-                        [PSCustomObject]@{
-                            Value  = $InputObject
-                            Stream = "Warning"
-                        }
-                        break
+                    break
+                }
+                $WarningFilter {
+                    [PSCustomObject]@{
+                        Value  = $InputObject
+                        Stream = "Warning"
                     }
-                    #------------------------------------------------------------------------------
-                    $JobSummaryEndLineRegex {
-                        # not used
-                        break
-                    }
-                    #                  Total     Copied      Skipped  Mismatch    FAILED     Extras
-                    $HeaderRegex {
-                        # not used
-                        break
-                    }
-                    #    Dirs :            0          0            0         0         0          0
-                    $DirLineRegex {
-                        $TotalDirs          = $Matches.Total
-                        $TotalDirCopied     = $Matches.Copied
-                        $TotalDirIgnored    = $Matches.Skipped
-                        $TotalDirMismatched = $Matches.Mismatch
-                        $TotalDirFailed     = $Matches.Failed
-                        $TotalDirExtra      = $Matches.Extras
-                        break
-                    }
-                    #   Files :            0          0            0         0         0          0
-                    $FileLineRegex {
-                        $TotalFiles          = $Matches.Total
-                        $TotalFileCopied     = $Matches.Copied
-                        $TotalFileIgnored    = $Matches.Skipped
-                        $TotalFileMismatched = $Matches.Mismatch
-                        $TotalFileFailed     = $Matches.Failed
-                        $TotalFileExtra      = $Matches.Extras
-                        break
-                    }
-                    #   Bytes :            0          0            0         0         0          0
-                    $BytesLineRegex {
-                        $TotalBytes           = $Matches.Total
-                        $TotalBytesCopied     = $Matches.Copied
-                        $TotalBytesIgnored    = $Matches.Skipped
-                        $TotalBytesMismatched = $Matches.Mismatch
-                        $TotalBytesFailed     = $Matches.Failed
-                        $TotalBytesExtra      = $Matches.Extras
-                        break
-                    }
-                    #   Times :      0:00:00    0:00:00                          0:00:00    0:00:00
-                    $TimeLineRegex {
-                        # [TimeSpan]$TotalDuration, [TimeSpan]$CopyDuration, [TimeSpan]$FailedDuration, [TimeSpan]$ExtraDuration = $PSitem | Select-String -Pattern '\d?\d\:\d{2}\:\d{2}' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value }
-                        break
-                    }
-                    #   Speed :               97152264 Bytes/sec.
-                    #   Speed :             97 152 264 Bytes/sec.
-                    $SpeedLineRegex {
-                        $TotalSpeedBytes = $Matches.Bytes -replace '[\s,]', '' #<- Win11 puts spaces in the byte count
-                        break
-                    }
-                    #   Speed :               5559.097 MegaBytes/min.
-                    $SpeedInMinutesRegex {
-                        # not used
-                        break
-                    }
-                    #   Ended : March 11, 2026 12:23:23 PM
-                    $EndedLineRegex {
-                        # not used
-                        break
-                    }
-                    default {
-                        # Write all strings to Information stream that we dont have rules for
-                        [PSCustomObject]@{
-                            Value  = $InputObject
-                            Stream = 'Information'
-                        }
+                    break
+                }
+                #------------------------------------------------------------------------------
+                $JobSummaryEndLineRegex {
+                    # not used
+                    break
+                }
+                #                  Total     Copied      Skipped  Mismatch    FAILED     Extras
+                $HeaderRegex {
+                    # not used
+                    break
+                }
+                #    Dirs :            0          0            0         0         0          0
+                $DirLineRegex {
+                    $TotalDirs          = $Matches.Total
+                    $TotalDirCopied     = $Matches.Copied
+                    $TotalDirIgnored    = $Matches.Skipped
+                    $TotalDirMismatched = $Matches.Mismatch
+                    $TotalDirFailed     = $Matches.Failed
+                    $TotalDirExtra      = $Matches.Extras
+                    break
+                }
+                #   Files :            0          0            0         0         0          0
+                $FileLineRegex {
+                    $TotalFiles          = $Matches.Total
+                    $TotalFileCopied     = $Matches.Copied
+                    $TotalFileIgnored    = $Matches.Skipped
+                    $TotalFileMismatched = $Matches.Mismatch
+                    $TotalFileFailed     = $Matches.Failed
+                    $TotalFileExtra      = $Matches.Extras
+                    break
+                }
+                #   Bytes :            0          0            0         0         0          0
+                $BytesLineRegex {
+                    $TotalBytes           = $Matches.Total
+                    $TotalBytesCopied     = $Matches.Copied
+                    $TotalBytesIgnored    = $Matches.Skipped
+                    $TotalBytesMismatched = $Matches.Mismatch
+                    $TotalBytesFailed     = $Matches.Failed
+                    $TotalBytesExtra      = $Matches.Extras
+                    break
+                }
+                #   Times :      0:00:00    0:00:00                          0:00:00    0:00:00
+                $TimeLineRegex {
+                    # [TimeSpan]$TotalDuration, [TimeSpan]$CopyDuration, [TimeSpan]$FailedDuration, [TimeSpan]$ExtraDuration = $PSitem | Select-String -Pattern '\d?\d\:\d{2}\:\d{2}' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value }
+                    break
+                }
+                #   Speed :               97152264 Bytes/sec.
+                #   Speed :             97 152 264 Bytes/sec.
+                $SpeedLineRegex {
+                    $TotalSpeedBytes = $Matches.Bytes -replace '[\s,]', '' #<- Win11 puts spaces in the byte count
+                    break
+                }
+                #   Speed :               5559.097 MegaBytes/min.
+                $SpeedInMinutesRegex {
+                    # not used
+                    break
+                }
+                #   Ended : March 11, 2026 12:23:23 PM
+                $EndedLineRegex {
+                    # not used
+                    break
+                }
+                default {
+                    # Write all strings to Information stream that we dont have rules for
+                    [PSCustomObject]@{
+                        Value  = $InputObject
+                        Stream = 'Information'
                     }
                 }
             }
@@ -199,6 +232,21 @@ Function Invoke-RobocopyParser {
     }
 
     end {
+
+        If ($PreviousLineWasHexError) {
+            # !!! pipeline ended before receiving the next line after seeing a hex error
+            $ErrorTime, $ErrorId, $ErrorTarget = ($PreviousLine -split "($HexErrorRegex)").trim()
+            [PSCustomObject]@{
+                Value       = $PreviousLine
+                Stream      = "Error"
+                ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
+                    [Exception]::new($ErrorTarget),
+                    $ErrorId,
+                    [System.Management.Automation.ErrorCategory]::NotSpecified,
+                    $ErrorTarget
+                )
+            }
+        }
 
         # Exit Code lookup "table"
         $LastExitCodeMessage = switch ($LASTEXITCODE) {
