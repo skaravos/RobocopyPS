@@ -933,7 +933,7 @@ Function Invoke-RoboCopy {
                                     $Exception,
                                     $Psitem.ErrorID,
                                     [System.Management.Automation.ErrorCategory]::NotSpecified,
-                                    $TargetObject # usually the object that triggered the error, if possible
+                                    $null # usually the object that triggered the error, if possible
                                 )
                                 $PSCmdlet.WriteError($ErrorRecord)
                             }
