@@ -29,7 +29,7 @@ Function Invoke-RobocopyParser {
     )
 
     begin {
-        # We have a corresponding $endtime to measure how long the code ran for
+        # We have a corresponding $EndTime to measure how long the code ran for
         $StartTime = $(Get-Date)
 
         # Regex for catching all text that will be sent to Error Stream
@@ -58,23 +58,23 @@ Function Invoke-RobocopyParser {
         [regex] $SpeedLineRegex = 'Speed\s*:\s*(?<Bytes>\d[\d\s,]*)\s+Bytes\/sec'
         [regex] $JobSummaryEndLineRegex = '[-]{78}'
         [regex] $SpeedInMinutesRegex = 'Speed\s:\s+(\d+).(\d+)\sMegaBytes\/min'
-        [regex] $FileInfoRegex = "\s*(?<status>[\*A-Za-z]+|([\*A-Za-z]+\s+[A-Za-z]+)|)\s+(?<size>[0-9]+)\s+(?<timestamp>([0-9]{4}\/[01][0-9]\/[0-3][0-9])\s+([0-2][0-9]:[0-5][0-9]:[0-5][0-9]))\s+(?<path>.+)\s*$"
+        [regex] $FileInfoRegex = "\s*(?<Status>[\*A-Za-z]+|([\*A-Za-z]+\s+[A-Za-z]+)|)\s+(?<Size>[0-9]+)\s+(?<TimeStamp>([0-9]{4}\/[01][0-9]\/[0-3][0-9])\s+([0-2][0-9]:[0-5][0-9]:[0-5][0-9]))\s+(?<path>.+)\s*$"
     }
 
     Process {
         try {
 
             If ($InputObject -match $ErrorFilter -or $ForceNextLineIntoError -eq $true) {
-                # If any error happened we set $errorOccured to $true.
-                # This is used in the output Property Success. If $errorOccured is $true we set Success to $false
-                $errorOccured = $true
+                # If any error happened we set $ErrorOccurred to $true.
+                # This is used in the output Property Success. If $ErrorOccurred is $true we set Success to $false
+                $ErrorOccurred = $true
 
                 If ($null -eq $Message) {
-                    $Message = $inputobject
+                    $Message = $InputObject
                     $ForceNextLineIntoError = $true
                 }
                 else {
-                    $LastMessage = ("{0}. {1}" -f $Message, $inputobject.trim())
+                    $LastMessage = ("{0}. {1}" -f $Message, $InputObject.trim())
                     $ForceNextLineIntoError = $false
                     $Message = $null
                     $SplitMessage = $LastMessage -split '(ERROR \d \(0x\d{1,11}\) )'
@@ -88,9 +88,9 @@ Function Invoke-RobocopyParser {
             }
 
             ElseIf ($InputObject -match $FileInfoRegex) {
-                $timestamp = [DateTime]::Parse($Matches.timestamp)
+                $TimeStamp = [DateTime]::Parse($Matches.TimeStamp)
                 $Extension = [System.IO.Path]::GetExtension($Matches.Path)
-                $FileName = [System.IO.Path]::GetFileName($Matches.Path)
+                $FileName  = [System.IO.Path]::GetFileName($Matches.Path)
 
                 [PSCustomObject]@{
                     Extension = $Extension
@@ -218,8 +218,8 @@ Function Invoke-RobocopyParser {
             default { '[WARNING]No message associated with this exit code. ExitCode: {0}' -f $LASTEXITCODE }
         }
 
-        # We have a corresponding $starttime to measure how long the code ran for
-        $endtime = $(Get-Date)
+        # We have a corresponding $StartTime to measure how long the code ran for
+        $EndTime = $(Get-Date)
 
         $FormatSpeedSplatting = @{
             Unit = $Unit
@@ -246,19 +246,19 @@ Function Invoke-RobocopyParser {
             'DirExtra'              = [int]$TotalDirExtra
             'FileExtra'             = [int]$TotalFileExtra
             #'ExtraDuration'    = $ExtraDuration
-            'TotalTime'             = "{0:g}" -f ($endtime - $StartTime)
+            'TotalTime'             = "{0:g}" -f ($EndTime - $StartTime)
             'StartedTime'           = [datetime]$StartTime
-            'EndedTime'             = [datetime]$endTime
-            'TotalSize'             = (Format-SpeedHumanReadable $Totalbytes @FormatSpeedSplatting)
+            'EndedTime'             = [datetime]$EndTime
+            'TotalSize'             = (Format-SpeedHumanReadable $TotalBytes @FormatSpeedSplatting)
             'TotalSizeCopied'       = (Format-SpeedHumanReadable $TotalBytesCopied @FormatSpeedSplatting)
             'TotalSizeIgnored'      = (Format-SpeedHumanReadable $TotalBytesIgnored @FormatSpeedSplatting)
             'TotalSizeMismatched'   = (Format-SpeedHumanReadable $TotalBytesMismatched @FormatSpeedSplatting)
             'TotalSizeFailed'       = (Format-SpeedHumanReadable $TotalBytesFailed @FormatSpeedSplatting)
             'TotalSizeExtra'        = (Format-SpeedHumanReadable $TotalBytesExtra @FormatSpeedSplatting)
-            'TotalSizeBytes'        = [int64]$Totalbytes
+            'TotalSizeBytes'        = [int64]$TotalBytes
             'Speed'                 = (Format-SpeedHumanReadable $TotalSpeedBytes @FormatSpeedSplatting) + '/s'
             'ExitCode'              = $LASTEXITCODE
-            'Success'               = If ($LASTEXITCODE -lt 8 -and $errorOccured -ne $true) { $true } else { $false }
+            'Success'               = If ($LASTEXITCODE -lt 8 -and $ErrorOccurred -ne $true) { $true } else { $false }
             'LastExitCodeMessage'   = [string]$LastExitCodeMessage
         }
     }
