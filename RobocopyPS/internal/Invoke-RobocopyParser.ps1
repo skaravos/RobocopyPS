@@ -50,12 +50,12 @@ Function Invoke-RobocopyParser {
 
         # Regex filter used for finding strings we want to handle in Robocopy output. This is also used when we find specific strings in the output
         [regex] $HeaderRegex = '\s+Total\s*Copied\s+Skipped\s+Mismatch\s+FAILED\s+Extras'
-        [regex] $DirLineRegex = 'Dirs\s*:\s*(?<DirCount>\d+)(?:\s+\d+){3}\s+(?<DirFailed>\d+)\s+\d+'
-        [regex] $FileLineRegex = 'Files\s*:\s*(?<FileCount>\d+)(?:\s+\d+){3}\s+(?<FileFailed>\d+)\s+\d+'
-        [regex] $BytesLineRegex = 'Bytes\s*:\s*(?<ByteCount>\d+)(?:\s+\d+){3}\s+(?<BytesFailed>\d+)\s+\d+'
+        [regex] $DirLineRegex = 'Dirs\s*:\s*(?<Total>\d+)\s+(?<Copied>\d+)\s+(?<Skipped>\d+)\s+(?<Mismatch>\d+)\s+(?<Failed>\d+)\s+(?<Extras>\d+)'
+        [regex] $FileLineRegex = 'Files\s*:\s*(?<Total>\d+)\s+(?<Copied>\d+)\s+(?<Skipped>\d+)\s+(?<Mismatch>\d+)\s+(?<Failed>\d+)\s+(?<Extras>\d+)'
+        [regex] $BytesLineRegex = 'Bytes\s*:\s*(?<Total>\d+)\s+(?<Copied>\d+)\s+(?<Skipped>\d+)\s+(?<Mismatch>\d+)\s+(?<Failed>\d+)\s+(?<Extras>\d+)'
         [regex] $TimeLineRegex = 'Times\s*:\s*(?<TimeElapsed>\d+).*'
         [regex] $EndedLineRegex = 'Ended\s*:\s*(?<EndedTime>.+)'
-        [regex] $SpeedLineRegex = 'Speed\s:\s+(\d+)\sBytes\/sec|Speed\s*:\s*([\d\s,]+)\s*Bytes\/sec\.'
+        [regex] $SpeedLineRegex = 'Speed\s*:\s*(?<Bytes>\d[\d\s,]*)\s+Bytes\/sec'
         [regex] $JobSummaryEndLineRegex = '[-]{78}'
         [regex] $SpeedInMinutesRegex = 'Speed\s:\s+(\d+).(\d+)\sMegaBytes\/min'
         [regex] $FileInfoRegex = "\s*(?<status>[\*A-Za-z]+|([\*A-Za-z]+\s+[A-Za-z]+)|)\s+(?<size>[0-9]+)\s+(?<timestamp>([0-9]{4}\/[01][0-9]\/[0-3][0-9])\s+([0-2][0-9]:[0-5][0-9]:[0-5][0-9]))\s+(?<path>.+)\s*$"
@@ -103,35 +103,87 @@ Function Invoke-RobocopyParser {
                 }
             }
 
-            ElseIf ($InputObject -match "$HeaderRegex|$DirLineRegex|$FileLineRegex|$BytesLineRegex|$TimeLineRegex|$EndedLineRegex|$SpeedLineRegex|$JobSummaryEndLineRegex|$SpeedInMinutesRegex") {
+            else {
                 # Some we will just assign to variables and dont use or dont do anything with
-                Switch -Regex ($inputobject) {
-                    $JobSummaryEndLine { }
-                    $HeaderRegex { }
-                    $DirLineRegex { $TotalDirs, $TotalDirCopied, $TotalDirIgnored, $TotalDirMismatched, $TotalDirFailed, $TotalDirExtra = $PSitem | Select-String -Pattern '\d+' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value } }
-                    $FileLineRegex { $TotalFiles, $TotalFileCopied, $TotalFileIgnored, $TotalFileMismatched, $TotalFileFailed, $TotalFileExtra = $PSitem | Select-String -Pattern '\d+' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value } }
-                    $BytesLineRegex { $TotalBytes, $TotalBytesCopied, $TotalBytesIgnored, $TotalBytesMismatched, $TotalBytesFailed, $TotalBytesExtra = $PSitem | Select-String -Pattern '\d+' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value } }
-                    #$TimeLineRegex { [TimeSpan]$TotalDuration, [TimeSpan]$CopyDuration, [TimeSpan]$FailedDuration, [TimeSpan]$ExtraDuration = $PSitem | Select-String -Pattern '\d?\d\:\d{2}\:\d{2}' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value } }
-                    $EndedLineRegex { }
-                    $SpeedLineRegex { $TotalSpeedBytes, $null = ($PSitem | Select-String -Pattern '\d+' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value }) -join "" } # fix for issue 18
-                    $SpeedInMinutesRegex { }
+                Switch -Regex ($InputObject) {
+                    $WarningFilter {
+                        [PSCustomObject]@{
+                            Value  = $InputObject
+                            Stream = "Warning"
+                        }
+                        break
+                    }
+                    #------------------------------------------------------------------------------
+                    $JobSummaryEndLineRegex {
+                        # not used
+                        break
+                    }
+                    #                  Total     Copied      Skipped  Mismatch    FAILED     Extras
+                    $HeaderRegex {
+                        # not used
+                        break
+                    }
+                    #    Dirs :            0          0            0         0         0          0
+                    $DirLineRegex {
+                        $TotalDirs          = $Matches.Total
+                        $TotalDirCopied     = $Matches.Copied
+                        $TotalDirIgnored    = $Matches.Skipped
+                        $TotalDirMismatched = $Matches.Mismatch
+                        $TotalDirFailed     = $Matches.Failed
+                        $TotalDirExtra      = $Matches.Extras
+                        break
+                    }
+                    #   Files :            0          0            0         0         0          0
+                    $FileLineRegex {
+                        $TotalFiles          = $Matches.Total
+                        $TotalFileCopied     = $Matches.Copied
+                        $TotalFileIgnored    = $Matches.Skipped
+                        $TotalFileMismatched = $Matches.Mismatch
+                        $TotalFileFailed     = $Matches.Failed
+                        $TotalFileExtra      = $Matches.Extras
+                        break
+                    }
+                    #   Bytes :            0          0            0         0         0          0
+                    $BytesLineRegex {
+                        $TotalBytes           = $Matches.Total
+                        $TotalBytesCopied     = $Matches.Copied
+                        $TotalBytesIgnored    = $Matches.Skipped
+                        $TotalBytesMismatched = $Matches.Mismatch
+                        $TotalBytesFailed     = $Matches.Failed
+                        $TotalBytesExtra      = $Matches.Extras
+                        break
+                    }
+                    #   Times :      0:00:00    0:00:00                          0:00:00    0:00:00
+                    $TimeLineRegex {
+                        # [TimeSpan]$TotalDuration, [TimeSpan]$CopyDuration, [TimeSpan]$FailedDuration, [TimeSpan]$ExtraDuration = $PSitem | Select-String -Pattern '\d?\d\:\d{2}\:\d{2}' -AllMatches | ForEach-Object { $PSitem.Matches } | ForEach-Object { $PSitem.Value }
+                        break
+                    }
+                    #   Speed :               97152264 Bytes/sec.
+                    #   Speed :             97 152 264 Bytes/sec.
+                    $SpeedLineRegex {
+                        $TotalSpeedBytes = $Matches.Bytes -replace '[\s,]', '' #<- Win11 puts spaces in the byte count
+                        break
+                    }
+                    #   Speed :               5559.097 MegaBytes/min.
+                    $SpeedInMinutesRegex {
+                        # not used
+                        break
+                    }
+                    #   Ended : March 11, 2026 12:23:23 PM
+                    $EndedLineRegex {
+                        # not used
+                        break
+                    }
+                    default {
+                        # Write all strings to Information stream that we dont have rules for
+                        [PSCustomObject]@{
+                            Value  = $InputObject
+                            Stream = 'Information'
+                        }
+                    }
                 }
             }
 
-            elseif ($InputObject -match $WarningFilter) {
-                [PSCustomObject]@{
-                    Value  = $InputObject
-                    Stream = "Warning"
-                }
-            }
-
-            ElseIf ($InputObject) {
-                # Write all strings to Information stream that we dont have rules for
-                [PSCustomObject]@{
-                    Value  = $InputObject
-                    Stream = "Information"
-                }
-            }
         }
         catch {
             Write-Warning "cannot parse output line: ${InputObject}: $($PSItem.Exception.Message)"
