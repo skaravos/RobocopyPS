@@ -912,7 +912,7 @@ Function Invoke-RoboCopy {
 
             #region All Logic for the robocopy process is handled here. Including what to do with the output etc.
             if ($OutputType -eq 'Parse') {
-                Robocopy.exe @RoboArgs | Where-Object { $PSItem -ne '' } | Invoke-RobocopyParser -Unit $unit -Precision $Precision | & {
+                Robocopy.exe @RoboArgs | Where-Object { $PSItem -ne '' } | Invoke-RobocopyParser -Unit $unit -Precision $Precision -RoboArgs $RoboArgs | & {
                     process {
                         If ($psitem.stream -eq 'Verbose') {
                             Write-Verbose -Message ('"{0} File" on "Item {1}" to target "{2}" Status on Item "{3}". Length on Item "{4}". TimeStamp on Item "{5}"' -f $action, $psitem.FullName , $Destination, $psitem.status, $psitem.length, $psitem.TimeStamp)

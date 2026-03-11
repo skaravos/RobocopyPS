@@ -25,7 +25,11 @@ Function Invoke-RobocopyParser {
 
         # Number of digits after decimal point in rounded numbers.
         [ValidateRange(1,28)]
-        [System.Int64]$Precision = 4
+        [System.Int64]$Precision = 4,
+
+        # Arguments that were used during the call to Robocopy.exe
+        # NOTE: currently only used for inclusion in the output object
+        [string[]]$RoboArgs
     )
 
     begin {
@@ -229,7 +233,7 @@ Function Invoke-RobocopyParser {
         [PSCustomObject]@{
             'Source'                = [System.IO.DirectoryInfo]$Source
             'Destination'           = [System.IO.DirectoryInfo]$Destination
-            'Command'               = 'Robocopy.exe ' + ($RoboArgs | ForEach-Object {[string]$_}) -join " "
+            'Command'               = 'Robocopy.exe ' + ($RoboArgs -join " ")
             'DirCount'              = [int]$TotalDirs
             'FileCount'             = [int]$TotalFiles
             #'Duration'     = $TotalDuration
