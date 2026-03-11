@@ -44,7 +44,7 @@ Function Invoke-RobocopyParser {
 
         # Regex for catching all text that will be sent to Warning Stream
         $WarningFilter = @(
-            "Waiting $Wait seconds... Retrying..."
+            "Waiting \d+ seconds... Retrying..."
             "Pausing to wait for free space"
         ) -join '|'
 
