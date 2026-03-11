@@ -914,36 +914,37 @@ Function Invoke-RoboCopy {
             if ($OutputType -eq 'Parse') {
                 Robocopy.exe @RoboArgs |
                     Where-Object { $PSItem -ne '' } |
-                    Invoke-RobocopyParser -Unit $unit -Precision $Precision -RoboArgs $RoboArgs | & {
+                    Invoke-RobocopyParser -Unit $unit -Precision $Precision -RoboArgs $RoboArgs |
+                    & {
                         process {
-                            If ($psitem.stream -eq 'Verbose') {
-                                Write-Verbose -Message ('"{0} File" on "Item {1}" to target "{2}" Status on Item "{3}". Length on Item "{4}". TimeStamp on Item "{5}"' -f $action, $psitem.FullName , $Destination, $psitem.status, $psitem.length, $psitem.TimeStamp)
+                            If ($PSItem.Stream -eq 'Verbose') {
+                                Write-Verbose -Message ('"{0} File" on "Item {1}" to target "{2}" Status on Item "{3}". Length on Item "{4}". TimeStamp on Item "{5}"' -f $action, $PSItem.FullName , $Destination, $PSItem.Status, $PSItem.Length, $PSItem.TimeStamp)
                             }
 
-                            ElseIf ($psitem.stream -eq 'Error') {
+                            ElseIf ($PSItem.Stream -eq 'Error') {
 
-                                If ($psitem.exception) {
-                                    $Exception = [Exception]::new($psitem.exception)
+                                If ($PSItem.Exception) {
+                                    $Exception = [Exception]::new($PSItem.Exception)
                                 }
                                 Else {
-                                    $Exception = [Exception]::new($psitem.Value)
+                                    $Exception = [Exception]::new($PSItem.Value)
                                 }
 
                                 $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
                                     $Exception,
-                                    $Psitem.ErrorID,
+                                    $PSItem.ErrorID,
                                     [System.Management.Automation.ErrorCategory]::NotSpecified,
                                     $null # usually the object that triggered the error, if possible
                                 )
                                 $PSCmdlet.WriteError($ErrorRecord)
                             }
 
-                            ElseIf ($psitem.stream -eq 'Warning') {
-                                Write-Warning $psitem.value
+                            ElseIf ($PSItem.Stream -eq 'Warning') {
+                                Write-Warning $PSItem.value
                             }
 
-                            ElseIf ($psitem.stream -eq 'Information') {
-                                Write-Information $psitem.Value
+                            ElseIf ($PSItem.Stream -eq 'Information') {
+                                Write-Information $PSItem.Value
                             }
 
                             Else {
@@ -951,7 +952,7 @@ Function Invoke-RoboCopy {
                                 if ($PSItem.Success -and $ClearLastExitCodeOnSuccess) {
                                     $global:LastExitCode = 0
                                 }
-                                $Psitem
+                                $PSItem
                             }
                         }
                     }
